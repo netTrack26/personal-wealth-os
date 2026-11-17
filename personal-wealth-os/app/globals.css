@@ -237,3 +237,15 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;ba
 .snapshot-list{display:grid;gap:8px;margin-top:14px}
 .snapshot-list>div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}
 @media(max-width:640px){.planning-controls,.milestone-grid,.report-summary{grid-template-columns:1fr}}
+
+
+/* Header navigation and wealth total controls refinement */
+.top{position:relative}
+.top-left{flex:1}
+.top-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.top-center .title{white-space:nowrap}
+.topright{margin-left:auto}
+.menu-trigger{padding:10px;width:42px;height:42px;justify-content:center}
+.wealth-heading{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.wealth-heading .quote-refresh{font-size:11px;padding:7px 11px}
+@media(max-width:700px){.top{padding:12px 14px}.top-center .title{font-size:16px}.topright .demo{font-size:0}.wealth-heading{gap:9px}.wealth-heading .quote-refresh{font-size:10px;padding:7px 9px}}
