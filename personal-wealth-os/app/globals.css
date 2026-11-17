@@ -147,3 +147,14 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;ba
 
 /* Wealth goal card beside monitored wealth */
 .hero{gap:22px}.hero-total{flex:1;min-width:0}.hero-goal{width:min(250px,34%);min-width:190px;padding:15px 16px;border:1px solid rgba(183,243,74,.28);border-radius:15px;background:linear-gradient(145deg,rgba(183,243,74,.09),rgba(83,201,237,.045));display:flex;flex-direction:column;gap:9px}.goal-heading{display:flex;align-items:center;gap:8px;color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:1.2px}.hero-goal>strong{font-size:23px;color:var(--lime);letter-spacing:-.5px}.hero-goal p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}.goal-progress{height:7px;background:rgba(255,255,255,.1);border-radius:20px;overflow:hidden}.goal-progress i{height:100%;display:block;border-radius:20px;background:linear-gradient(90deg,var(--cyan),var(--lime))}.hero-goal>small{font-size:10px;color:var(--muted)}.goal-edit{align-self:flex-start;border:1px solid rgba(83,201,237,.3);background:rgba(83,201,237,.07);color:var(--cyan);border-radius:9px;padding:7px 10px;font-size:11px;font-weight:700}.goal-page{max-width:650px}.field-label{display:block;margin:18px 0 7px;color:var(--muted);font-size:12px;font-weight:700}.goal-input{width:100%;padding:14px;border:1px solid var(--line);border-radius:11px;background:#0c1419;color:var(--text);font-size:20px;outline:none}.goal-input:focus{border-color:var(--cyan)}.goal-preview{margin:14px 0;padding:14px;border-radius:11px;background:rgba(83,201,237,.06);color:var(--muted);font-size:13px;line-height:1.5}.goal-preview b{color:var(--lime)}.goal-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}@media(max-width:700px){.hero{align-items:stretch;flex-direction:column;gap:16px}.hero-goal{width:100%;min-width:0}.hero-total{width:100%}}
+
+
+/* Portfolio score beside monitored wealth */
+.hero-rating{width:min(230px,29%);min-width:180px;padding:15px 16px;border:1px solid rgba(84,220,255,.28);border-radius:15px;background:linear-gradient(145deg,rgba(84,220,255,.085),rgba(197,255,85,.045));display:flex;flex-direction:column;gap:7px}
+.rating-heading{display:flex;align-items:center;gap:8px;color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:1px}
+.rating-heading svg{width:18px;height:18px}
+.hero-rating>strong{font-size:36px;line-height:1;color:var(--lime);letter-spacing:-1px;font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(197,255,85,.16)}
+.hero-rating>strong small{font-size:15px;color:var(--muted);margin-left:3px}
+.rating-stars{font-size:12px;font-weight:800;color:#d9f4b2}
+.hero-rating p{margin:0;color:var(--muted);font-size:10px;line-height:1.45}
+@media(max-width:700px){.hero-rating{width:100%;min-width:0}.hero-rating>strong{font-size:32px}}
