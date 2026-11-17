@@ -22,6 +22,35 @@ export default function Home(){
  const fileRef=useRef<HTMLInputElement>(null);
  useEffect(()=>{try{const raw=localStorage.getItem('pwo-data-v2');if(raw)setData(JSON.parse(raw));}catch{}setReady(true)},[]);
  useEffect(()=>{if(ready)localStorage.setItem('pwo-data-v2',JSON.stringify(data))},[data,ready]);
+ const [quoteStatus,setQuoteStatus]=useState('Quotazioni non ancora aggiornate');
+ async function refreshFundQuotes(silent=false){
+  try{
+   setQuoteStatus('Aggiornamento in corso…');
+   const response=await fetch('/api/fund-quotes',{cache:'no-store'});
+   const result=await response.json();
+   if(!response.ok||!result.ok)throw new Error(result.error||'Fonte quotazioni temporaneamente non disponibile.');
+   const quotes: {isin:string;price:number;date:string;source:string}[]=result.quotes||[];
+   if(!quotes.length)throw new Error('La fonte non ha restituito quotazioni.');
+   const byIsin=new Map(quotes.map(q=>[q.isin,q]));
+   let updated=0;
+   setData(current=>({...current,holdings:current.holdings.map(h=>{
+    if(h.type!=='Fondo comune'||!h.isin)return h;
+    const q=byIsin.get(h.isin);
+    if(!q||!Number.isFinite(q.price)||q.price<=0)return h;
+    updated++;
+    return {...h,price:q.price,updatedAt:new Date().toISOString(),notes:(h.notes||'')+' Quotazione fonte Eurizon aggiornata al '+q.date+'.'};
+   })}));
+   localStorage.setItem('pwo-last-fund-quotes-date',new Date().toISOString().slice(0,10));
+   const label='Quotazioni Eurizon aggiornate: '+updated+' fondi. Ultima data quota: '+quotes.map(q=>q.date).sort().at(-1)+'.';
+   setQuoteStatus(label);
+   if(!silent)setMessage(label);
+  }catch(error){
+   const label=error instanceof Error?error.message:'Errore aggiornamento quotazioni.';
+   setQuoteStatus('Aggiornamento non riuscito: '+label);
+   if(!silent)setMessage(label);
+  }
+ }
+ useEffect(()=>{if(ready){const today=new Date().toISOString().slice(0,10);if(localStorage.getItem('pwo-last-fund-quotes-date')!==today)void refreshFundQuotes(true)}},[ready]);
  const value=(h:Holding)=>{const marketValue=h.units*h.price;return marketValue>0?marketValue:(h.totalContributed??0)};
  const total=data.holdings.reduce((s,h)=>s+value(h),0);
  const invested=data.holdings.reduce((s,h)=>s+(h.totalContributed??h.costBasis),0);
@@ -80,8 +109,8 @@ export default function Home(){
  function importData(file:File){const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(String(r.result));if(!parsed.holdings||!parsed.transactions)throw Error();setData(parsed);setMessage('Backup importato correttamente.')}catch{setMessage('File non valido: seleziona un backup JSON esportato da PERSONAL WEALTH OS.')}};r.readAsText(file)}
  const navItems=<>{nav.map(([label,icon])=><button key={label} className={page===label?'nav active':'nav'} onClick={()=>setPage(label)}>{icon==='dashboard'?<LayoutDashboard/>:icon==='investments'?<Landmark/>:icon==='transactions'?<ArrowLeftRight/>:icon==='pac'?<CalendarClock/>:icon==='analysis'?<ChartNoAxesCombined/>:icon==='data'?<FileUp/>:<Settings/>}{label}</button>)}</>;
  return <main className="shell"><aside className="sidebar"><div className="logo"><span>▥</span><b>PERSONAL<br/>WEALTH OS</b></div><div className="navlist">{navItems}</div><div className="side-note"><ShieldCheck/> <span>Area personale<br/><b>Dati salvati su questo dispositivo</b></span></div></aside>
- <section className="main"><header className="top"><div><div className="title">{page}</div><div className="sub">Il tuo patrimonio, in un'unica visione.</div></div><div className="topright"><span className="demo">● Modalità locale</span><button className="primary small" onClick={()=>{setEditing(null);setModal('holding')}}><Plus size={16}/> Aggiungi investimento</button></div></header>
- <div className="body">
+ <section className="main"><header className="top"><div><div className="title">{page}</div><div className="sub">Il tuo patrimonio, in un'unica visione.</div></div><div className="topright"><span className="demo">● Modalità locale</span><button className="outline quote-refresh" onClick={()=>void refreshFundQuotes()}><RefreshCw size={15}/> Aggiorna quote</button><button className="primary small" onClick={()=>{setEditing(null);setModal('holding')}}><Plus size={16}/> Aggiungi investimento</button></div></header>
+ <div className="body"><div className="toast"><CheckCircle2 size={14}/>{quoteStatus} · Fonte: Eurizon Capital (fondi comuni)</div>
  {page==='Dashboard'&&<><section className="hero"><div><label>PATRIMONIO MONITORATO</label><h1>{fmt(total)}</h1><div className="hero-meta"><span className={gain>=0?'up':'down'}>{gain>=0?'+':''}{fmt(gain)} risultato vs capitale registrato</span><span>Valori aggiornati in base ai dati inseriti</span></div></div><div className="hero-mark">PWO</div></section>
  <div className="metrics"><Metric icon={<Wallet/>} label="Capitale registrato" value={fmt(invested)}/><Metric icon={<TrendingUp/>} label="Differenza vs capitale" value={fmt(gain)} accent={gain>=0}/><Metric icon={<CalendarClock/>} label="PAC mensile pianificato" value={fmt(monthlyPAC)}/><Metric icon={<Coins/>} label="Strumenti monitorati" value={String(data.holdings.length)}/></div>
  <div className="grid2"><section className="panel"><div className="panelhead"><h2>Andamento patrimonio</h2><button className="outline" onClick={saveSnapshot}>Registra valore di oggi</button></div>{history.length>=1?<div className="chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={history}><defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b7f34a" stopOpacity=".3"/><stop offset="100%" stopColor="#b7f34a" stopOpacity="0"/></linearGradient></defs><CartesianGrid stroke="#283139" vertical={false}/><XAxis dataKey="m" stroke="#84919a"/><YAxis stroke="#84919a" width={68} tickFormatter={v=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',notation:Math.abs(Number(v))>=1000?'compact':'standard',maximumFractionDigits:0}).format(Number(v))}/><Tooltip formatter={(v:any)=>fmt(Number(v))} contentStyle={{background:'#11191e',border:'1px solid #34414a'}}/><Area dataKey="v" stroke="#b7f34a" fill="url(#fill)" strokeWidth={3}/></AreaChart></ResponsiveContainer></div>:<div className="empty">Non hai ancora uno storico reale. Registra oggi la prima rilevazione; ripeti l'operazione ogni mese per costruire il grafico.</div>}<p className="hint">Il grafico mostra solo rilevazioni salvate manualmente: non vengono inventati prezzi o rendimenti storici.</p></section>
