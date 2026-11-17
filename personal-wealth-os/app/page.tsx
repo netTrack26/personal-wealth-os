@@ -22,9 +22,9 @@ export default function Home(){
  const fileRef=useRef<HTMLInputElement>(null);
  useEffect(()=>{try{const raw=localStorage.getItem('pwo-data-v2');if(raw)setData(JSON.parse(raw));}catch{}setReady(true)},[]);
  useEffect(()=>{if(ready)localStorage.setItem('pwo-data-v2',JSON.stringify(data))},[data,ready]);
- const value=(h:Holding)=>h.units*h.price;
+ const value=(h:Holding)=>{const marketValue=h.units*h.price;return marketValue>0?marketValue:(h.totalContributed??0)};
  const total=data.holdings.reduce((s,h)=>s+value(h),0);
- const invested=data.holdings.reduce((s,h)=>s+h.costBasis,0);
+ const invested=data.holdings.reduce((s,h)=>s+(h.totalContributed??h.costBasis),0);
  const gain=total-invested;
  const monthlyPAC=data.holdings.reduce((s,h)=>s+h.pac,0);
  const holdings=data.holdings.filter(h=>(selected==='all'||h.institution===selected)&&(`${h.name} ${h.institution} ${h.isin}`).toLowerCase().includes(query.toLowerCase()));
