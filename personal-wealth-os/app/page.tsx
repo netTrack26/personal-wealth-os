@@ -148,6 +148,27 @@ export default function Home(){
  function exportCSV(){const rows=[['Istituto','Strumento','ISIN','Tipologia','Quote','Prezzo','Valore','Capitale versato','PAC mensile'],...data.holdings.map(h=>[h.institution,h.name,h.isin,h.type,h.units,h.price,value(h),(h.totalContributed??h.costBasis),h.pac])];download(new Blob([rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(';')).join('\n')],{type:'text/csv'}),'personal-wealth-os-investimenti.csv')}
  function download(blob:Blob,name:string){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
  function importData(file:File){const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(String(r.result));if(!parsed.holdings||!parsed.transactions)throw Error();setData(parsed);setMessage('Backup importato correttamente.')}catch{setMessage('File non valido: seleziona un backup JSON esportato da PERSONAL WEALTH OS.')}};r.readAsText(file)}
+ const extraMonthly=Math.max(0,num(extraPAC));
+ const scenarioMonthly=monthlyPAC+extraMonthly;
+ const savingsRate=Number(monthlyIncome)>0?monthlyPAC/Number(monthlyIncome)*100:null;
+ const scenarioForecast=useMemo(()=>{
+  if(goalSaved<=0)return null;
+  if(total>=goalSaved)return {months:0,value:total};
+  let balance=total,months=0;
+  const monthlyRate=num(scenarioRate)/100/12;
+  while(balance<goalSaved&&months<1200){balance=balance*(1+monthlyRate)+scenarioMonthly;months++;}
+  return balance>=goalSaved?{months,value:balance}:null;
+ },[goalSaved,total,scenarioRate,scenarioMonthly]);
+ const milestones=useMemo(()=>[25,50,75,100].map(percent=>{
+  const amount=goalSaved*percent/100;
+  return {label:percent+'%',amount,done:total>=amount,progress:amount>0?Math.min(100,total/amount*100):0};
+ }),[goalSaved,total]);
+ function downloadMonthlyReport(){
+  const month=new Date().toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+  const rows=data.holdings.map(h=>'<tr><td>'+h.name+'</td><td>'+h.institution+'</td><td>'+fmt(value(h))+'</td><td>'+fmt(h.totalContributed??h.costBasis)+'</td></tr>').join('');
+  const html='<!doctype html><html lang="it"><meta charset="utf-8"><title>Report patrimoniale</title><style>body{font:15px Arial,sans-serif;max-width:900px;margin:40px auto;color:#17202a}h1{color:#203040}table{width:100%;border-collapse:collapse;margin-top:24px}td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}.summary{display:flex;gap:28px;margin:24px 0}.summary b{display:block;font-size:22px}@media print{button{display:none}}</style><body><h1>PERSONAL WEALTH OS</h1><p>Report patrimoniale · '+month+'</p><div class="summary"><div>Patrimonio monitorato<b>'+fmt(total)+'</b></div><div>Capitale registrato<b>'+fmt(invested)+'</b></div><div>Differenza<b>'+fmt(gain)+'</b></div></div><h2>Investimenti</h2><table><thead><tr><th>Strumento</th><th>Istituto</th><th>Valore monitorato</th><th>Capitale registrato</th></tr></thead><tbody>'+rows+'</tbody></table><p><small>Report generato dai dati inseriti nell’app. Per Generali il valore può rappresentare i premi versati e non il valore ufficiale di riscatto. Non costituisce consulenza finanziaria.</small></p><button onclick="window.print()">Stampa / Salva PDF</button></body></html>';
+  download(new Blob([html],{type:'text/html;charset=utf-8'}),'personal-wealth-os-report-'+new Date().toISOString().slice(0,7)+'.html');
+ }
  const navItems=<>{nav.map(([label,icon])=><button key={label} className={page===label?'nav active':'nav'} onClick={()=>{setPage(label);setMenuOpen(false)}}>{icon==='dashboard'?<LayoutDashboard/>:icon==='investments'?<Landmark/>:icon==='transactions'?<ArrowLeftRight/>:icon==='pac'?<CalendarClock/>:icon==='analysis'?<ChartNoAxesCombined/>:icon==='planning'?<Target/>:icon==='goal'?<Target/>:icon==='data'?<FileUp/>:<Settings/>}{label}</button>)}</>;
  return <main className="shell"><section className="main"><header className="top"><div className="top-left"><div className="menu-wrap"><button className="menu-trigger" aria-expanded={menuOpen} onClick={()=>setMenuOpen(v=>!v)}><Menu size={18}/><span>Sezioni</span><span className="menu-current">{page}</span></button>{menuOpen&&<><button className="menu-backdrop" aria-label="Chiudi menu" onClick={()=>setMenuOpen(false)}/><div className="menu-dropdown"><div className="logo"><span>▥</span><b>PERSONAL<br/>WEALTH OS</b></div><div className="navlist">{navItems}</div><div className="side-note"><ShieldCheck/> <span>Area personale<br/><b>Dati salvati su questo dispositivo</b></span></div></div></>}</div><div><div className="title">{page}</div><div className="sub">Il tuo patrimonio, in un'unica visione.</div></div></div><div className="topright"><span className="demo">● Modalità locale</span><button className="outline quote-refresh" onClick={()=>void refreshFundQuotes()}><RefreshCw size={15}/> Aggiorna quote</button><button className="primary small" onClick={()=>{setEditing(null);setModal('holding')}}><Plus size={16}/> Aggiungi investimento</button></div></header>
  <div className="body"><div className="toast"><CheckCircle2 size={14}/>{quoteStatus}</div>
