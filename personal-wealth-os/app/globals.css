@@ -169,3 +169,9 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;ba
 @keyframes rating-breathe{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.045);filter:brightness(1.18)}}
 @keyframes rating-ring{0%{transform:scale(.94);opacity:.75}75%,100%{transform:scale(1.17);opacity:0}}
 @media(prefers-reduced-motion:reduce){.rating-circle,.rating-circle:before{animation:none}}
+
+/* Wealth goal countdown and estimated milestone date */
+.goal-countdown{display:grid;gap:4px;margin:2px 0 3px;padding:10px 11px;border:1px solid rgba(197,255,85,.2);border-radius:10px;background:rgba(197,255,85,.055)}
+.goal-countdown strong{font-size:14px;color:var(--lime);font-variant-numeric:tabular-nums}
+.goal-countdown span{font-size:10px;color:var(--muted);line-height:1.4}
+.hero-goal{gap:8px}
