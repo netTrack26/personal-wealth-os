@@ -107,3 +107,10 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;ba
  .menu-dropdown{width:min(265px,calc(100vw - 24px))}
 }
 @media(prefers-reduced-motion:reduce){.menu-dropdown{animation:none}}
+
+/* Fix dropdown stacking above dashboard content. */
+.top{position:relative;z-index:1000;overflow:visible}
+.top-left{position:relative;z-index:1001}
+.menu-wrap{position:relative;z-index:1002}
+.menu-dropdown{z-index:1004}
+.menu-backdrop{z-index:1003}
