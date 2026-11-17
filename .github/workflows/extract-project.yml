@@ -1,0 +1,33 @@
+name: Extract PERSONAL WEALTH OS package
+
+on:
+  push:
+    paths:
+      - 'PERSONAL_WEALTH_OS_V2.zip'
+      - '.github/workflows/extract-project.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Extract project files
+        run: |
+          unzip -o PERSONAL_WEALTH_OS_V2.zip -d /tmp/pwo
+          ROOT=/tmp/pwo
+          if [ -d "$ROOT/personal-wealth-os-v2" ]; then ROOT="$ROOT/personal-wealth-os-v2"; fi
+          if [ -d "$ROOT/PERSONAL_WEALTH_OS_V2" ]; then ROOT="$ROOT/PERSONAL_WEALTH_OS_V2"; fi
+          cp -R "$ROOT"/. .
+          rm -rf .next node_modules
+      - name: Commit extracted source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add PERSONAL WEALTH OS source files" || echo "No changes to commit"
+          git push
