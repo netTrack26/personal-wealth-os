@@ -8,3 +8,22 @@
 @media(max-width:700px){.analysis-tablewrap{overflow:visible} .analysis-tablewrap table{width:100%;min-width:0;table-layout:fixed} .analysis-tablewrap thead{display:none} .analysis-tablewrap tbody{display:grid;gap:10px} .analysis-tablewrap tr{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;padding:9px 10px;border:1px solid var(--line);border-radius:11px;background:#10171b} .analysis-tablewrap td{display:flex;flex-direction:column;gap:5px;min-width:0;white-space:normal;overflow-wrap:anywhere;padding:9px 3px;border-bottom:1px solid #28333a;font-size:11px} .analysis-tablewrap td::before{content:attr(data-label);font-size:9px;color:var(--muted);font-weight:600} .analysis-tablewrap td:first-child{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--text)} .analysis-tablewrap td:first-child::before{content:"Strumento"} .analysis-tablewrap td:last-child{border-bottom:0}}
 
 @media(max-width:700px){.holding-tablewrap{overflow:visible}.holding-tablewrap table{width:100%;min-width:0;table-layout:fixed}.holding-tablewrap thead{display:none}.holding-tablewrap tbody{display:grid;gap:10px}.holding-tablewrap tr{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#10171b}.holding-tablewrap td{display:flex;flex-direction:column;gap:5px;min-width:0;white-space:normal;overflow-wrap:anywhere;padding:9px 3px;font-size:11px;border-bottom:1px solid #28333a}.holding-tablewrap td::before{content:attr(data-label);font-size:9px;color:var(--muted);font-weight:600}.holding-tablewrap td:first-child{grid-column:1/-1}.holding-tablewrap td:first-child::before{content:"Strumento"}.holding-tablewrap .asset{max-width:none}.holding-tablewrap td:nth-child(5) b{font-size:12px;color:var(--lime)}.holding-tablewrap td:last-child{grid-column:1/-1;display:flex;flex-direction:row;justify-content:flex-end;gap:14px;border-bottom:0}.holding-tablewrap td:last-child::before{margin-right:auto;align-self:center}.holding-tablewrap .rowbtn{padding:8px}}
+
+/* Mobile holdings: force compact cards in both Dashboard and Investments. */
+@media screen and (max-width: 900px) {
+  .holding-tablewrap { overflow: visible !important; width: 100%; }
+  .holding-tablewrap table { display: block; width: 100% !important; min-width: 0 !important; table-layout: fixed; }
+  .holding-tablewrap thead { display: none !important; }
+  .holding-tablewrap tbody { display: grid !important; grid-template-columns: 1fr; gap: 10px; width: 100%; }
+  .holding-tablewrap tr { display: grid !important; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 0 10px; width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: #10171b; }
+  .holding-tablewrap td { display: flex !important; flex-direction: column; min-width: 0; white-space: normal !important; overflow-wrap: anywhere; padding: 9px 3px; font-size: 11px; border-bottom: 1px solid #28333a; }
+  .holding-tablewrap td::before { content: attr(data-label); display: block; font-size: 9px; color: var(--muted); font-weight: 600; }
+  .holding-tablewrap td:first-child { grid-column: 1 / -1; }
+  .holding-tablewrap td:first-child::before { content: "Strumento"; }
+  .holding-tablewrap .asset { max-width: 100%; min-width: 0; }
+  .holding-tablewrap .asset div { min-width: 0; overflow-wrap: anywhere; }
+  .holding-tablewrap td:nth-child(5) b { color: var(--lime); font-size: 12px; }
+  .holding-tablewrap td:last-child { grid-column: 1 / -1; display: flex !important; flex-direction: row; justify-content: flex-end; gap: 14px; border-bottom: 0; }
+  .holding-tablewrap td:last-child::before { content: "Azioni"; margin-right: auto; align-self: center; }
+}
+
