@@ -33,35 +33,44 @@ export default function Home(){
  function addHolding(h:Holding){setData(d=>({...d,holdings:editing?d.holdings.map(x=>x.id===h.id?h:x):[...d.holdings,h]}));setModal(null);setEditing(null);setMessage('Investimento salvato.')}
  function deleteHolding(hid:string){if(!confirm('Eliminare questo investimento? I movimenti associati saranno conservati.'))return;setData(d=>({...d,holdings:d.holdings.filter(h=>h.id!==hid)}));}
  function addTransaction(t:Transaction){
+  const h=data.holdings.find(x=>x.id===t.holdingId);
+  if(!h){setMessage('Errore: investimento non trovato.');return;}
+  const amount=Number(t.amount)||0, units=Number(t.units)||0, price=Number(t.price)||0;
+  if(!t.date){setMessage('Inserisci la data del movimento.');return;}
+  if(t.confirmed){
+   if(t.kind==='Versamento'&&amount<=0){setMessage('Il versamento deve avere un importo maggiore di zero.');return;}
+   if(t.kind==='Acquisto'&&(amount<=0||units<=0)){setMessage('Per un acquisto inserisci importo e quote maggiori di zero.');return;}
+   if(t.kind==='Rimborso'&&(units<=0||units>h.units)){setMessage('Il rimborso deve avere quote positive e non superiori a quelle possedute.');return;}
+   if(t.kind==='Commissione'&&amount<=0){setMessage('La commissione deve avere un importo maggiore di zero.');return;}
+   if(t.kind==='Rettifica'&&(h.units+units<0||h.costBasis+amount<0)){setMessage('La rettifica non può portare quote o capitale sotto zero.');return;}
+  }
   setData(d=>{
    const transactions=[t,...d.transactions];
    if(!t.confirmed)return {...d,transactions};
-   const holdings=d.holdings.map(h=>{
-    if(h.id!==t.holdingId)return h;
-    const amount=Math.max(0,t.amount||0), units=Math.max(0,t.units||0);
-    let nextUnits=h.units, nextCost=h.costBasis;
+   const holdings=d.holdings.map(x=>{
+    if(x.id!==t.holdingId)return x;
+    let nextUnits=x.units, nextCost=x.costBasis;
     if(t.kind==='Versamento'){
      nextCost+=amount;
     }else if(t.kind==='Acquisto'){
      nextUnits+=units;
      nextCost+=amount;
     }else if(t.kind==='Rimborso'){
-     const removed=Math.min(nextUnits,units);
      const averageCost=nextUnits>0?nextCost/nextUnits:0;
-     nextUnits-=removed;
-     nextCost=Math.max(0,nextCost-averageCost*removed);
+     nextUnits-=units;
+     nextCost=Math.max(0,nextCost-averageCost*units);
     }else if(t.kind==='Commissione'){
      nextCost+=amount;
     }else if(t.kind==='Rettifica'){
-     nextUnits=Math.max(0,nextUnits+units);
-     nextCost=Math.max(0,nextCost+amount);
+     nextUnits+=units;
+     nextCost+=amount;
     }
-    return {...h,units:nextUnits,costBasis:nextCost,updatedAt:new Date().toISOString()};
+    return {...x,units:nextUnits,costBasis:nextCost,updatedAt:new Date().toISOString()};
    });
    return {...d,transactions,holdings};
   });
   setModal(null);
-  setMessage(t.confirmed?'Movimento confermato e posizione aggiornata.':'Movimento pianificato: posizione invariata.');
+  setMessage(t.confirmed?'Movimento confermato: posizione aggiornata secondo il tipo di operazione.':'Movimento pianificato: posizione invariata.');
  }
  function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});download(blob,'personal-wealth-os-backup.json');}
  function exportCSV(){const rows=[['Istituto','Strumento','ISIN','Tipologia','Quote','Prezzo','Valore','Capitale versato','PAC mensile'],...data.holdings.map(h=>[h.institution,h.name,h.isin,h.type,h.units,h.price,value(h),h.costBasis,h.pac])];download(new Blob([rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(';')).join('\n')],{type:'text/csv'}),'personal-wealth-os-investimenti.csv')}
@@ -97,5 +106,5 @@ function Modal({type,holding,holdings,close,saveHolding,saveTransaction}:{type:'
  const txupd=(k:string,v:any)=>setT((x:any)=>({...x,[k]:v}));
  return <div className="modalback" onMouseDown={close}><div className="modal" onMouseDown={e=>e.stopPropagation()}><div className="modalhead"><h2>{type==='holding'?(holding?'Modifica investimento':'Nuovo investimento'):'Registra movimento'}</h2><button onClick={close}><X/></button></div>
  {type==='holding'?<form onSubmit={e=>{e.preventDefault();saveHolding({...f,id:holding?.id||id(),units:num(String(f.units)),price:num(String(f.price)),costBasis:num(String(f.costBasis)),pac:num(String(f.pac)),pacDay:num(String(f.pacDay)),updatedAt:new Date().toISOString()})}}><div className="formgrid"><label>Istituto / emittente<input required value={f.institution} onChange={e=>upd('institution',e.target.value)}/></label><label>Nome strumento<input required value={f.name} onChange={e=>upd('name',e.target.value)}/></label><label>ISIN<input value={f.isin} onChange={e=>upd('isin',e.target.value.toUpperCase())}/></label><label>Tipologia<select value={f.type} onChange={e=>upd('type',e.target.value)}>{['Fondo comune','Fondo pensione','ETF','Liquidità','Altro'].map(x=><option>{x}</option>)}</select></label><label>Quote possedute<input type="number" step="0.000001" value={f.units} onChange={e=>upd('units',e.target.value)}/></label><label>Prezzo / valore quota (€)<input type="number" step="0.000001" value={f.price} onChange={e=>upd('price',e.target.value)}/></label><label>Capitale versato (€)<input type="number" step="0.01" value={f.costBasis} onChange={e=>upd('costBasis',e.target.value)}/></label><label>PAC mensile (€)<input type="number" step="0.01" value={f.pac} onChange={e=>upd('pac',e.target.value)}/></label><label>Giorno PAC<input type="number" min="1" max="28" value={f.pacDay} onChange={e=>upd('pacDay',e.target.value)}/></label><label>Colore identificativo<select value={f.color} onChange={e=>upd('color',e.target.value)}>{colors.map(c=><option value={c}>{c}</option>)}</select></label><label className="full">Note<textarea value={f.notes} onChange={e=>upd('notes',e.target.value)}/></label></div><div className="formhint">Per i fondi pensione puoi inserire il valore posizione corrente nel campo prezzo/valore quota e impostare 1 come quantità, oppure gestire la posizione con rettifiche. Il capitale versato resta separato.</div><button className="primary submit">Salva investimento</button></form>
- :<form onSubmit={e=>{e.preventDefault();saveTransaction({...t,id:id(),amount:num(String(t.amount)),units:num(String(t.units)),price:num(String(t.price)),confirmed:!!t.confirmed})}}><div className="formgrid"><label className="full">Investimento<select required value={t.holdingId} onChange={e=>txupd('holdingId',e.target.value)}>{holdings.map(h=><option value={h.id}>{h.institution} · {h.name}</option>)}</select></label><label>Data<input type="date" value={t.date} onChange={e=>txupd('date',e.target.value)}/></label><label>Tipo operazione<select value={t.kind} onChange={e=>txupd('kind',e.target.value)}>{['Versamento','Acquisto','Rimborso','Commissione','Rettifica'].map(x=><option>{x}</option>)}</select></label><label>Importo (€)<input type="number" step="0.01" value={t.amount} onChange={e=>txupd('amount',e.target.value)}/></label><label>Quote movimentate<input type="number" step="0.000001" value={t.units} onChange={e=>txupd('units',e.target.value)}/></label><label>Prezzo quota (€)<input type="number" step="0.000001" value={t.price} onChange={e=>txupd('price',e.target.value)}/></label><label>Stato<select value={String(t.confirmed)} onChange={e=>txupd('confirmed',e.target.value==='true')}><option value="true">Confermato / eseguito</option><option value="false">Pianificato / da confermare</option></select></label><label className="full">Nota<input value={t.note} onChange={e=>txupd('note',e.target.value)}/></label></div><div className="formhint">Un movimento pianificato viene registrato ma non modifica la posizione. Conferma solo operazioni realmente eseguite.</div><button className="primary submit">Registra movimento</button></form>}</div></div>
+ :<form onSubmit={e=>{e.preventDefault();saveTransaction({...t,id:id(),amount:num(String(t.amount)),units:num(String(t.units)),price:num(String(t.price)),confirmed:!!t.confirmed})}}><div className="formgrid"><label className="full">Investimento<select required value={t.holdingId} onChange={e=>txupd('holdingId',e.target.value)}>{holdings.map(h=><option value={h.id}>{h.institution} · {h.name}</option>)}</select></label><label>Data<input type="date" value={t.date} onChange={e=>txupd('date',e.target.value)}/></label><label>Tipo operazione<select value={t.kind} onChange={e=>txupd('kind',e.target.value)}>{['Versamento','Acquisto','Rimborso','Commissione','Rettifica'].map(x=><option>{x}</option>)}</select></label><label>Importo (€)<input type="number" min={t.kind==='Rettifica'?undefined:'0'} step="0.01" value={t.amount} onChange={e=>txupd('amount',e.target.value)}/></label><label>Quote movimentate {t.kind==='Rettifica'?'(usa valore negativo per diminuire)':''}<input type="number" min={t.kind==='Rettifica'?undefined:'0'} step="0.000001" value={t.units} onChange={e=>txupd('units',e.target.value)}/></label><label>Prezzo quota (€)<input type="number" min="0" step="0.000001" value={t.price} onChange={e=>txupd('price',e.target.value)}/></label><label>Stato<select value={String(t.confirmed)} onChange={e=>txupd('confirmed',e.target.value==='true')}><option value="true">Confermato / eseguito</option><option value="false">Pianificato / da confermare</option></select></label><label className="full">Nota<input value={t.note} onChange={e=>txupd('note',e.target.value)}/></label></div><div className="formhint">{t.kind==='Versamento'?'Versamento: aumenta il capitale registrato, ma non crea quote.':t.kind==='Acquisto'?'Acquisto: aumenta le quote e il capitale di carico. Inserisci l’importo totale effettivamente investito, commissioni incluse.':t.kind==='Rimborso'?'Rimborso: riduce le quote e scarica il costo storico proporzionale; l’importo indica il ricavo incassato.':t.kind==='Commissione'?'Commissione: aumenta il costo complessivo, senza modificare le quote.':'Rettifica: inserisci variazioni positive o negative per correggere manualmente quote e capitale.'} Un movimento pianificato viene registrato nello storico ma non modifica la posizione. Conferma solo operazioni realmente eseguite.</div><button className="primary submit">Registra movimento</button></form>}</div></div>
 }
