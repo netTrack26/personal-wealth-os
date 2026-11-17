@@ -158,3 +158,14 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;ba
 .rating-stars{font-size:12px;font-weight:800;color:#d9f4b2}
 .hero-rating p{margin:0;color:var(--muted);font-size:10px;line-height:1.45}
 @media(max-width:700px){.hero-rating{width:100%;min-width:0}.hero-rating>strong{font-size:32px}}
+
+/* Pulsing circular portfolio score */
+.rating-circle{position:relative;width:112px;height:112px;margin:3px auto 5px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(from -90deg,var(--lime) 0deg,#53c9ed 245deg,rgba(83,201,237,.13) 245deg 360deg);box-shadow:0 0 18px rgba(183,243,74,.14),inset 0 0 0 1px rgba(255,255,255,.12);animation:rating-breathe 2.8s ease-in-out infinite}
+.rating-circle:before{content:"";position:absolute;inset:-7px;border:1px solid rgba(183,243,74,.48);border-radius:50%;animation:rating-ring 2.8s ease-out infinite}
+.rating-circle:after{content:"";position:absolute;inset:5px;border-radius:50%;background:#101a20;box-shadow:inset 0 0 16px rgba(0,0,0,.4)}
+.rating-circle-inner{position:relative;z-index:1;display:grid;place-items:center}
+.rating-circle-inner strong{font-size:32px;line-height:1;color:var(--lime);letter-spacing:-1px;font-variant-numeric:tabular-nums;text-shadow:0 0 14px rgba(183,243,74,.3)}
+.rating-circle-inner small{font-size:12px;color:var(--muted);margin-left:3px}
+@keyframes rating-breathe{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.045);filter:brightness(1.18)}}
+@keyframes rating-ring{0%{transform:scale(.94);opacity:.75}75%,100%{transform:scale(1.17);opacity:0}}
+@media(prefers-reduced-motion:reduce){.rating-circle,.rating-circle:before{animation:none}}
