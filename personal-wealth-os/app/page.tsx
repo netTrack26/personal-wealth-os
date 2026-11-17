@@ -30,12 +30,12 @@ export default function Home(){
    const result=await response.json();
    if(!response.ok||!result.ok)throw new Error([result.error,...(result.details||[])].filter(Boolean).join(' · ')||'Fonte quotazioni temporaneamente non disponibile.');
    const quotes: {isin:string;price:number;date:string;source:string}[]=result.quotes||[];
-   if(quotes.length!==4)throw new Error('La fonte non ha restituito tutte e quattro le quotazioni: nessun dato è stato modificato.');
+   if(quotes.length!==5)throw new Error('La fonte non ha restituito tutte e cinque le quotazioni (4 fondi + VUAA): nessun dato è stato modificato.');
    const byIsin=new Map(quotes.map(q=>[q.isin,q]));
    const updatedAt=new Date().toISOString();
    setData(current=>{
     const updatedHoldings=current.holdings.map(h=>{
-     if(h.type!=='Fondo comune'||!h.isin)return h;
+     if(!['Fondo comune','ETF'].includes(h.type)||!h.isin)return h;
      const q=byIsin.get(h.isin);
      if(!q||!Number.isFinite(q.price)||q.price<=0)return h;
      return {...h,price:q.price,updatedAt,notes:(h.notes||'').replace(/ Quotazione fonte Eurizon aggiornata al [^.]+\./g,'')};
@@ -49,7 +49,7 @@ export default function Home(){
    });
    localStorage.setItem('pwo-last-fund-quotes-date',new Date().toISOString().slice(0,10));
    const latestDate=quotes.map(q=>q.date).sort().at(-1)||'—';
-   const label='4 fondi aggiornati da '+(result.source||'fonte dati')+'. Ultima data NAV disponibile: '+latestDate+'.';
+   const label='4 fondi e 1 ETF aggiornati da '+(result.source||'fonti dati')+'. Ultima data disponibile: '+latestDate+'.';
    setQuoteStatus(label);
    if(!silent)setMessage(label);
   }catch(error){
