@@ -32,7 +32,37 @@ export default function Home(){
  const history=useMemo(()=>{const months=['Giu','Lug','Ago','Set','Ott','Nov'];return months.map((m,i)=>({m,v:total*(.94+i*.012)}))},[total]);
  function addHolding(h:Holding){setData(d=>({...d,holdings:editing?d.holdings.map(x=>x.id===h.id?h:x):[...d.holdings,h]}));setModal(null);setEditing(null);setMessage('Investimento salvato.')}
  function deleteHolding(hid:string){if(!confirm('Eliminare questo investimento? I movimenti associati saranno conservati.'))return;setData(d=>({...d,holdings:d.holdings.filter(h=>h.id!==hid)}));}
- function addTransaction(t:Transaction){setData(d=>({...d,transactions:[t,...d.transactions],holdings:d.holdings.map(h=>h.id===t.holdingId?{...h,units:Math.max(0,h.units+(t.kind==='Rimborso'?-t.units:t.units)),costBasis:Math.max(0,h.costBasis+(t.kind==='Rimborso'?-t.amount:t.kind==='Commissione'?0:t.amount))}:h)}));setModal(null);setMessage('Movimento registrato e posizione aggiornata.');}
+ function addTransaction(t:Transaction){
+  setData(d=>{
+   const transactions=[t,...d.transactions];
+   if(!t.confirmed)return {...d,transactions};
+   const holdings=d.holdings.map(h=>{
+    if(h.id!==t.holdingId)return h;
+    const amount=Math.max(0,t.amount||0), units=Math.max(0,t.units||0);
+    let nextUnits=h.units, nextCost=h.costBasis;
+    if(t.kind==='Versamento'){
+     nextCost+=amount;
+    }else if(t.kind==='Acquisto'){
+     nextUnits+=units;
+     nextCost+=amount;
+    }else if(t.kind==='Rimborso'){
+     const removed=Math.min(nextUnits,units);
+     const averageCost=nextUnits>0?nextCost/nextUnits:0;
+     nextUnits-=removed;
+     nextCost=Math.max(0,nextCost-averageCost*removed);
+    }else if(t.kind==='Commissione'){
+     nextCost+=amount;
+    }else if(t.kind==='Rettifica'){
+     nextUnits=Math.max(0,nextUnits+units);
+     nextCost=Math.max(0,nextCost+amount);
+    }
+    return {...h,units:nextUnits,costBasis:nextCost,updatedAt:new Date().toISOString()};
+   });
+   return {...d,transactions,holdings};
+  });
+  setModal(null);
+  setMessage(t.confirmed?'Movimento confermato e posizione aggiornata.':'Movimento pianificato: posizione invariata.');
+ }
  function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});download(blob,'personal-wealth-os-backup.json');}
  function exportCSV(){const rows=[['Istituto','Strumento','ISIN','Tipologia','Quote','Prezzo','Valore','Capitale versato','PAC mensile'],...data.holdings.map(h=>[h.institution,h.name,h.isin,h.type,h.units,h.price,value(h),h.costBasis,h.pac])];download(new Blob([rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(';')).join('\n')],{type:'text/csv'}),'personal-wealth-os-investimenti.csv')}
  function download(blob:Blob,name:string){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
@@ -43,7 +73,7 @@ export default function Home(){
  <div className="body">
  {page==='Dashboard'&&<><section className="hero"><div><label>PATRIMONIO MONITORATO</label><h1>{fmt(total)}</h1><div className="hero-meta"><span className={gain>=0?'up':'down'}>{gain>=0?'+':''}{fmt(gain)} risultato vs capitale registrato</span><span>Valori aggiornati in base ai dati inseriti</span></div></div><div className="hero-mark">PWO</div></section>
  <div className="metrics"><Metric icon={<Wallet/>} label="Capitale registrato" value={fmt(invested)}/><Metric icon={<TrendingUp/>} label="Differenza vs capitale" value={fmt(gain)} accent={gain>=0}/><Metric icon={<CalendarClock/>} label="PAC mensile pianificato" value={fmt(monthlyPAC)}/><Metric icon={<Coins/>} label="Strumenti monitorati" value={String(data.holdings.length)}/></div>
- <div className="grid2"><section className="panel"><div className="panelhead"><h2>Andamento patrimonio</h2><span className="tag">Stima illustrativa</span></div><div className="chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={history}><defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b7f34a" stopOpacity=".3"/><stop offset="100%" stopColor="#b7f34a" stopOpacity="0"/></linearGradient></defs><CartesianGrid stroke="#283139" vertical={false}/><XAxis dataKey="m" stroke="#84919a"/><YAxis stroke="#84919a" tickFormatter={v=>`${Math.round(v/1000)}k`}/><Tooltip formatter={(v:any)=>fmt(Number(v))} contentStyle={{background:'#11191e',border:'1px solid #34414a'}}/><Area dataKey="v" stroke="#b7f34a" fill="url(#fill)" strokeWidth={3}/></AreaChart></ResponsiveContainer></div><p className="hint">La curva è una visualizzazione indicativa basata sul valore attuale, non uno storico reale. Lo storico reale si costruirà con rilevazioni periodiche.</p></section>
+ <div className="grid2"><section className="panel"><div className="panelhead"><h2>Andamento patrimonio</h2><span className="tag">Stima illustrativa</span></div><div className="chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={history}><defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b7f34a" stopOpacity=".3"/><stop offset="100%" stopColor="#b7f34a" stopOpacity="0"/></linearGradient></defs><CartesianGrid stroke="#283139" vertical={false}/><XAxis dataKey="m" stroke="#84919a"/><YAxis stroke="#84919a" width={68} tickFormatter={v=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',notation:Math.abs(Number(v))>=1000?'compact':'standard',maximumFractionDigits:0}).format(Number(v))}/><Tooltip formatter={(v:any)=>fmt(Number(v))} contentStyle={{background:'#11191e',border:'1px solid #34414a'}}/><Area dataKey="v" stroke="#b7f34a" fill="url(#fill)" strokeWidth={3}/></AreaChart></ResponsiveContainer></div><p className="hint">Stima illustrativa: non rappresenta rendimenti o prezzi storici reali. Lo storico effettivo sarà disponibile quando verranno registrate rilevazioni periodiche.</p></section>
  <section className="panel"><div className="panelhead"><h2>Allocazione per strumento</h2><span className="tag">Valore attuale</span></div><div className="piewrap">{pie.length?<><div className="pie"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pie} dataKey="value" nameKey="name" innerRadius="65%" outerRadius="92%" paddingAngle={3}>{pie.map((p,i)=><Cell key={i} fill={p.color}/>)}</Pie></PieChart></ResponsiveContainer></div><div className="legend">{pie.map(p=><div key={p.name}><i style={{background:p.color}}/><span>{p.name}</span><b>{total?((p.value/total)*100).toFixed(1):0}%</b></div>)}</div></>:<Empty text="Inserisci quote e prezzi per visualizzare l'allocazione."/>}</div></section></div>
  <section className="panel"><div className="panelhead"><h2>I tuoi investimenti</h2><button className="textbtn" onClick={()=>setPage('Investimenti')}>Gestisci tutti <ChevronRight size={15}/></button></div><HoldingTable items={data.holdings.slice(0,5)} value={value} edit={h=>{setEditing(h);setModal('holding')}} remove={deleteHolding}/></section></>}
  {page==='Investimenti'&&<section className="panel"><div className="panelhead wrap"><div><h2>Investimenti e posizioni</h2><p className="hint">Gestisci fondi, previdenza, ETF e liquidità.</p></div><button className="primary" onClick={()=>{setEditing(null);setModal('holding')}}><Plus size={16}/> Nuovo investimento</button></div><div className="filters"><div className="search"><Search size={16}/><input placeholder="Cerca nome, istituto o ISIN" value={query} onChange={e=>setQuery(e.target.value)}/></div><select value={selected} onChange={e=>setSelected(e.target.value)}><option value="all">Tutti gli istituti</option>{Array.from(new Set(data.holdings.map(h=>h.institution))).map(x=><option key={x}>{x}</option>)}</select></div><HoldingTable items={holdings} value={value} edit={h=>{setEditing(h);setModal('holding')}} remove={deleteHolding}/></section>}
