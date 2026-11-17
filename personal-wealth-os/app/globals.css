@@ -72,3 +72,38 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;ba
 @keyframes orbitGlow{from{transform:translateY(0) scale(.96);opacity:.6}to{transform:translateY(24px) scale(1.04);opacity:1}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media(max-width:700px){.hero:before{right:-20%;top:-245px;width:300px;height:300px}.hero h1{font-size:clamp(29px,7vw,38px)}.metric:hover,.panel:hover{transform:none}}
+
+
+/* Dropdown navigation replaces the permanent left sidebar. */
+.shell{display:block;min-height:100vh}
+.main{width:100%;min-height:100vh}
+.top-left{display:flex;align-items:center;gap:17px;min-width:0}
+.menu-wrap{position:relative;z-index:30}
+.menu-trigger{display:flex;align-items:center;gap:9px;border:1px solid rgba(84,220,255,.32);background:rgba(84,220,255,.07);color:var(--cyan);border-radius:11px;padding:10px 13px;font-size:12px;font-weight:700;white-space:nowrap}
+.menu-trigger:hover{background:rgba(84,220,255,.13);box-shadow:0 0 18px rgba(84,220,255,.1)}
+.menu-current{color:var(--text);padding-left:8px;border-left:1px solid rgba(84,220,255,.25);font-weight:500}
+.menu-dropdown{position:absolute;left:0;top:calc(100% + 10px);width:265px;padding:14px;background:rgba(8,16,26,.97);border:1px solid rgba(84,220,255,.3);border-radius:16px;box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 28px rgba(84,220,255,.08);backdrop-filter:blur(22px);animation:menuIn .16s ease-out}
+.menu-dropdown .logo{padding:2px 5px 13px;margin-bottom:10px;border-bottom:1px solid rgba(84,220,255,.16)}
+.menu-dropdown .logo b{font-size:13px}
+.menu-dropdown .logo span{font-size:29px}
+.menu-dropdown .navlist{padding-top:0;display:grid;gap:4px}
+.menu-dropdown .nav{width:100%;font-size:12px;padding:11px 10px}
+.menu-dropdown .nav svg{width:17px;height:17px}
+.menu-dropdown .side-note{margin-top:12px;padding:12px 4px 2px;font-size:10px}
+.menu-backdrop{position:fixed;inset:0;z-index:-1;border:0;background:transparent;cursor:default}
+@keyframes menuIn{from{opacity:0;transform:translateY(-5px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:700px){
+ .top{gap:8px;padding:10px 12px}
+ .top-left{gap:10px}
+ .menu-trigger{padding:9px 10px;gap:7px}
+ .menu-current{max-width:105px;overflow:hidden;text-overflow:ellipsis}
+ .title{font-size:17px}
+ .sub{max-width:190px}
+ .topright{gap:7px}
+ .topright .quote-refresh{font-size:0;padding:9px}
+ .topright .quote-refresh svg{width:16px;height:16px}
+ .topright .primary{font-size:0;padding:10px}
+ .topright .primary svg{width:16px;height:16px}
+ .menu-dropdown{width:min(265px,calc(100vw - 24px))}
+}
+@media(prefers-reduced-motion:reduce){.menu-dropdown{animation:none}}
