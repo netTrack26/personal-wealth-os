@@ -28,20 +28,28 @@ export default function Home(){
    setQuoteStatus('Aggiornamento in corso…');
    const response=await fetch('/api/fund-quotes',{cache:'no-store'});
    const result=await response.json();
-   if(!response.ok||!result.ok)throw new Error(result.error||'Fonte quotazioni temporaneamente non disponibile.');
+   if(!response.ok||!result.ok)throw new Error([result.error,...(result.details||[])].filter(Boolean).join(' · ')||'Fonte quotazioni temporaneamente non disponibile.');
    const quotes: {isin:string;price:number;date:string;source:string}[]=result.quotes||[];
-   if(!quotes.length)throw new Error('La fonte non ha restituito quotazioni.');
+   if(quotes.length!==4)throw new Error('La fonte non ha restituito tutte e quattro le quotazioni: nessun dato è stato modificato.');
    const byIsin=new Map(quotes.map(q=>[q.isin,q]));
-   let updated=0;
-   setData(current=>({...current,holdings:current.holdings.map(h=>{
-    if(h.type!=='Fondo comune'||!h.isin)return h;
-    const q=byIsin.get(h.isin);
-    if(!q||!Number.isFinite(q.price)||q.price<=0)return h;
-    updated++;
-    return {...h,price:q.price,updatedAt:new Date().toISOString(),notes:(h.notes||'')+' Quotazione fonte Eurizon aggiornata al '+q.date+'.'};
-   })}));
+   const updatedAt=new Date().toISOString();
+   setData(current=>{
+    const updatedHoldings=current.holdings.map(h=>{
+     if(h.type!=='Fondo comune'||!h.isin)return h;
+     const q=byIsin.get(h.isin);
+     if(!q||!Number.isFinite(q.price)||q.price<=0)return h;
+     return {...h,price:q.price,updatedAt,notes:(h.notes||'').replace(/ Quotazione fonte Eurizon aggiornata al [^.]+\./g,'')};
+    });
+    const quoteHistory=[...current.quotes.filter(old=>!quotes.some(q=>q.isin===current.holdings.find(h=>h.id===old.holdingId)?.isin&&old.date===q.date))];
+    for(const q of quotes){
+     const holding=current.holdings.find(h=>h.isin===q.isin);
+     if(holding)quoteHistory.push({holdingId:holding.id,date:q.date,price:q.price,source:q.source});
+    }
+    return {...current,holdings:updatedHoldings,quotes:quoteHistory};
+   });
    localStorage.setItem('pwo-last-fund-quotes-date',new Date().toISOString().slice(0,10));
-   const label='Quotazioni Eurizon aggiornate: '+updated+' fondi. Ultima data quota: '+quotes.map(q=>q.date).sort().at(-1)+'.';
+   const latestDate=quotes.map(q=>q.date).sort().at(-1)||'—';
+   const label='4 fondi aggiornati da Eurizon. Ultima data NAV disponibile: '+latestDate+'.';
    setQuoteStatus(label);
    if(!silent)setMessage(label);
   }catch(error){
