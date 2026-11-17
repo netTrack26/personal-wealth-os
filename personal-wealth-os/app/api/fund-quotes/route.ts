@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
-export const revalidate = 21600;
+
+export const revalidate = 0;
+
 const FUNDS = [
  { isin:'LU2654117899', page:'2FADB869244' },
  { isin:'LU2653845524', page:'2FADB869236' },
  { isin:'LU2178929886', page:'2FADB602824' },
  { isin:'LU2274839039', page:'2FADB664080' },
 ];
+const ETF = { isin:'IE00BFMXXD54', symbol:'VUAA.MI' };
+
 function parseItalianNumber(v:string){const n=Number(v.replace(/\./g,'').replace(',','.'));return Number.isFinite(n)?n:NaN;}
 function parseDate(v:string){const m=v.match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);if(!m)return null;const y=m[3].length===2?Number('20'+m[3]):Number(m[3]);return `${y}-${m[2]}-${m[1]}`;}
 function parseBorsaQuote(html:string,isin:string){
@@ -21,10 +25,26 @@ async function fetchFund(fund:typeof FUNDS[number]){
  if(!res.ok)throw new Error(`Borsa Italiana HTTP ${res.status} per ${fund.isin}`);
  return parseBorsaQuote(await res.text(),fund.isin);
 }
+async function fetchETF(){
+ const url=`https://query1.finance.yahoo.com/v8/finance/chart/${ETF.symbol}?range=1d&interval=1d`;
+ const res=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0','Accept':'application/json'},cache:'no-store',signal:AbortSignal.timeout(15000)});
+ if(!res.ok)throw new Error(`Yahoo Finance HTTP ${res.status} per ${ETF.symbol}`);
+ const json=await res.json();
+ const result=json?.chart?.result?.[0];
+ const meta=result?.meta;
+ const price=meta?.regularMarketPrice;
+ const currency=meta?.currency;
+ const timestamp=meta?.regularMarketTime??result?.timestamp?.at(-1);
+ if(typeof price!=='number'||!Number.isFinite(price)||price<=0)throw new Error('Yahoo Finance non ha restituito un prezzo valido per VUAA.MI');
+ if(currency!=='EUR')throw new Error(`Valuta inattesa per VUAA.MI: ${currency||'sconosciuta'}`);
+ const date=timestamp?new Date(timestamp*1000).toISOString().slice(0,10):new Date().toISOString().slice(0,10);
+ return {isin:ETF.isin,price,date,source:'Yahoo Finance – VUAA.MI (quotazione di mercato, possibile ritardo)'};
+}
 export async function GET(){
- const results=await Promise.allSettled(FUNDS.map(fetchFund));
+ const results=await Promise.allSettled([...FUNDS.map(fetchFund),fetchETF()]);
  const quotes=results.flatMap(r=>r.status==='fulfilled'?[r.value]:[]);
- const errors=results.flatMap((r,i)=>r.status==='rejected'?[ `${FUNDS[i].isin}: ${r.reason instanceof Error?r.reason.message:'errore fonte'}` ]:[]);
- if(errors.length)return NextResponse.json({ok:false,source:'Borsa Italiana',error:'Aggiornamento incompleto: nessuna quotazione parziale è stata applicata.',details:errors,quotes},{status:502});
- return NextResponse.json({ok:true,source:'Borsa Italiana – schede dei fondi',fetchedAt:new Date().toISOString(),quotes},{headers:{'Cache-Control':'s-maxage=21600, stale-while-revalidate=3600'}});
+ const jobs=[...FUNDS.map(f=>f.isin),ETF.isin];
+ const errors=results.flatMap((r,i)=>r.status==='rejected'?[ `${jobs[i]}: ${r.reason instanceof Error?r.reason.message:'errore fonte'}` ]:[]);
+ if(errors.length||quotes.length!==5)return NextResponse.json({ok:false,source:'Borsa Italiana + Yahoo Finance',error:'Aggiornamento incompleto: nessuna quotazione è stata applicata.',details:errors,quotes},{status:502});
+ return NextResponse.json({ok:true,source:'Borsa Italiana (fondi) + Yahoo Finance (VUAA)',fetchedAt:new Date().toISOString(),quotes},{headers:{'Cache-Control':'no-store'}});
 }
