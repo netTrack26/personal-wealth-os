@@ -44,27 +44,24 @@ export default function Home(){
    const result=await response.json();
    if(!response.ok||!result.ok)throw new Error([result.error,...(result.details||[])].filter(Boolean).join(' · ')||'Fonte quotazioni temporaneamente non disponibile.');
    const quotes: {isin:string;price:number;date:string;source:string}[]=result.quotes||[];
-   if(quotes.length!==5)throw new Error('La fonte non ha restituito tutte e cinque le quotazioni (4 fondi + VUAA): nessun dato è stato modificato.');
+   if(quotes.filter(q=>q.isin!=='MIODOMANI-LT').length!==5)throw new Error('La fonte non ha restituito tutte e cinque le quotazioni principali (4 fondi + VUAA): nessun dato è stato modificato.');
    const byIsin=new Map(quotes.map(q=>[q.isin,q]));
    const updatedAt=new Date().toISOString();
    setData(current=>{
     const updatedHoldings=current.holdings.map(h=>{
-     if(!['Fondo comune','ETF'].includes(h.type)||!h.isin)return h;
-     const q=byIsin.get(h.isin);
+     const q=h.id==='miodomani'?byIsin.get('MIODOMANI-LT'):(['Fondo comune','ETF'].includes(h.type)&&h.isin?byIsin.get(h.isin):undefined);
      if(!q||!Number.isFinite(q.price)||q.price<=0)return h;
-     return {...h,price:q.price,updatedAt,notes:(h.notes||'').replace(/ Quotazione fonte Eurizon aggiornata al [^.]+\./g,'')};
+     return {...h,price:q.price,updatedAt,notes:(h.notes||'').replace(/ Quotazione fonte Eurizon aggiornata al [^.]+\\./g,'')};
     });
-    const quoteHistory=[...current.quotes.filter(old=>!quotes.some(q=>q.isin===current.holdings.find(h=>h.id===old.holdingId)?.isin&&old.date===q.date))];
-    for(const q of quotes){
-     const holding=current.holdings.find(h=>h.isin===q.isin);
-     if(holding)quoteHistory.push({holdingId:holding.id,date:q.date,price:q.price,source:q.source});
-    }
+    const quoteHoldingId=(isin:string)=>isin==='MIODOMANI-LT'?'miodomani':current.holdings.find(h=>h.isin===isin)?.id;
+    const quoteHistory=[...current.quotes.filter(old=>!quotes.some(q=>quoteHoldingId(q.isin)===old.holdingId&&old.date===q.date))];
+    for(const q of quotes){const holdingId=quoteHoldingId(q.isin);if(holdingId)quoteHistory.push({holdingId,date:q.date,price:q.price,source:q.source});}
     const today=new Date();const dailyKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;const dailyTotal=updatedHoldings.reduce((sum,h)=>{const marketValue=h.units*h.price;return sum+(marketValue>0?marketValue:(h.totalContributed??h.costBasis))},0);const dailyInvested=updatedHoldings.reduce((sum,h)=>sum+(h.totalContributed??h.costBasis),0);const previousSnapshots=current.snapshots||[];const dailySnapshot={id:`daily-${dailyKey}`,date:dailyKey,total:dailyTotal,invested:dailyInvested,note:'Rilevazione giornaliera automatica dopo aggiornamento quotazioni'};const snapshots=[...previousSnapshots.filter(x=>x.date!==dailyKey),dailySnapshot].sort((a,b)=>a.date.localeCompare(b.date));
     return {...current,holdings:updatedHoldings,quotes:quoteHistory,snapshots};
    });
    localStorage.setItem('pwo-last-fund-quotes-date',new Date().toISOString().slice(0,10));
    const latestDate=quotes.map(q=>q.date).sort().at(-1)||'—';
-   const checkedAt=new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});const label='Aggiornati ora alle '+checkedAt+' · 4 fondi + 1 ETF';
+   const checkedAt=new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});const label='Aggiornati ora alle '+checkedAt+' · 4 fondi + 1 ETF'+(result.mioDomaniAvailable?' + Il Mio Domani (quota al '+(quotes.find(q=>q.isin==='MIODOMANI-LT')?.date||'')+')':' · Il Mio Domani non aggiornato: '+(result.mioDomaniWarning||'fonte non disponibile'));
    setQuoteStatus(label);
    if(!silent)setMessage(label);
   }catch(error){
