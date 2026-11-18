@@ -160,7 +160,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;ba
 @media(max-width:1100px){.hero{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-total{grid-column:1/-1}}@media(max-width:700px){.hero{grid-template-columns:1fr}.hero-total{grid-column:auto}.hero-rating,.hero-goal{width:100%;min-width:0}.hero-rating>strong{font-size:32px}}
 
 /* Pulsing circular portfolio score */
-.rating-circle{position:relative;width:112px;height:112px;margin:3px auto 5px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(from -90deg,var(--lime) 0deg,#53c9ed 245deg,rgba(83,201,237,.13) 245deg 360deg);box-shadow:0 0 18px rgba(183,243,74,.14),inset 0 0 0 1px rgba(255,255,255,.12);animation:rating-breathe 2.8s ease-in-out infinite}
+.rating-circle{position:relative;width:112px!important;height:112px!important;min-width:112px;min-height:112px;flex:0 0 112px;box-sizing:border-box;margin:3px auto 5px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(from -90deg,var(--lime) 0deg,#53c9ed 245deg,rgba(83,201,237,.13) 245deg 360deg);box-shadow:0 0 18px rgba(183,243,74,.14),inset 0 0 0 1px rgba(255,255,255,.12);animation:rating-breathe 2.8s ease-in-out infinite}
 .rating-circle:before{content:"";position:absolute;inset:-7px;border:1px solid rgba(183,243,74,.48);border-radius:50%;animation:rating-ring 2.8s ease-out infinite}
 .rating-circle:after{content:"";position:absolute;inset:5px;border-radius:50%;background:#101a20;box-shadow:inset 0 0 16px rgba(0,0,0,.4)}
 .rating-circle-inner{position:relative;z-index:1;display:grid;place-items:center}
