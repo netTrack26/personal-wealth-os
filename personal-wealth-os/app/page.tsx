@@ -51,7 +51,7 @@ export default function Home(){
     const updatedHoldings=current.holdings.map(h=>{
      const q=h.id==='miodomani'?byIsin.get('MIODOMANI-LT'):(['Fondo comune','ETF'].includes(h.type)&&h.isin?byIsin.get(h.isin):undefined);
      if(!q||!Number.isFinite(q.price)||q.price<=0)return h;
-     return {...h,price:q.price,updatedAt,notes:(h.notes||'').replace(/ Quotazione fonte Eurizon aggiornata al [^.]+\\./g,'')};
+     return {...h,price:q.price,updatedAt,notes:(h.notes||'').replace(/ Quotazione fonte Eurizon aggiornata al [^.]+\./g,'')};
     });
     const quoteHoldingId=(isin:string)=>isin==='MIODOMANI-LT'?'miodomani':current.holdings.find(h=>h.isin===isin)?.id;
     const quoteHistory=[...current.quotes.filter(old=>!quotes.some(q=>quoteHoldingId(q.isin)===old.holdingId&&old.date===q.date))];
