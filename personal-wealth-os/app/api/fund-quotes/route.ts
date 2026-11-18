@@ -23,9 +23,9 @@ function parseBorsaQuote(html:string,isin:string){
 
 const MONTHS:Record<string,string>={gen:'01',gennaio:'01',feb:'02',febbraio:'02',mar:'03',marzo:'03',apr:'04',aprile:'04',mag:'05',maggio:'05',giu:'06',giugno:'06',lug:'07',luglio:'07',ago:'08',agosto:'08',set:'09',sett:'09',settembre:'09',ott:'10',ottobre:'10',nov:'11',novembre:'11',dic:'12',dicembre:'12'};
 function parseMioDomani(html:string){
- const t=html.replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&euro;|&#8364;/g,'€').replace(/&amp;/g,'&').replace(/\\s+/g,' ');
+ const t=html.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&euro;|&#8364;/g,'€').replace(/&amp;/g,'&').replace(/\s+/g,' ');
  if(!/LINEA LUNGO TERMINE/i.test(t))throw new Error('La pagina ufficiale non identifica la Linea Lungo Termine');
- const m=t.match(/VALORE QUOTA\\s+([\\d.]+,\\d{2,6})\\s*€?\\s+Aggiornato al\\s+(\\d{1,2})\\s+([A-Za-zÀ-ÿ]+)\\s+(\\d{4})/i);
+ const m=t.match(/VALORE QUOTA\s+([\d.]+,\d{2,6})\s*€?\s+Aggiornato al\s+(\d{1,2})\s+([A-Za-zÀ-ÿ]+)\s+(\d{4})/i);
  if(!m)throw new Error('Quotazione/data ufficiale Il Mio Domani non leggibile');
  const price=parseItalianNumber(m[1]),month=MONTHS[m[3].toLowerCase()];
  if(!Number.isFinite(price)||price<=0||!month)throw new Error('Valore quota o data Il Mio Domani non validi');
