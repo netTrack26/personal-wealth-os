@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Area,AreaChart,CartesianGrid,XAxis,YAxis,Tooltip,ResponsiveContainer,PieChart,Pie,Cell,BarChart,Bar} from 'recharts';
-import {LayoutDashboard,Landmark,Umbrella,ChartNoAxesCombined,Wallet,ArrowLeftRight,CalendarClock,FileUp,Download,Plus,Search,Settings,ShieldCheck,TrendingUp,Coins,Target,FileText,Menu,X,Eye,EyeOff,Trash2,Edit3,CheckCircle2,AlertCircle,ChevronRight,Upload,RefreshCw} from 'lucide-react';
+import {LayoutDashboard,Landmark,Umbrella,ChartNoAxesCombined,Wallet,ArrowLeftRight,CalendarClock,FileUp,Download,Plus,Search,Settings,ShieldCheck,TrendingUp,Coins,Target,FileText,Menu,X,Eye,EyeOff,Trash2,Edit3,CheckCircle2,AlertCircle,ChevronRight,Upload,RefreshCw,Layers} from 'lucide-react';
 import {demoData} from '../lib/defaults';
 import type {AppData,Holding,Transaction,AssetType} from '../lib/types';
 
