@@ -17,7 +17,7 @@ export default function Home(){
  const [page,setPage]=useState('Dashboard');
  const [menuOpen,setMenuOpen]=useState(false);
  const [hideAmounts,setHideAmounts]=useState(false);
- const moneyFmt=(v:number)=>hideAmounts?'••••••':moneyFmt(v);
+ const moneyFmt=(v:number)=>hideAmounts?'••••••':fmt(v);
  const [goalInput,setGoalInput]=useState('');
  const [goalSaved,setGoalSaved]=useState(0);
  const [monthlyIncome,setMonthlyIncome]=useState('');
