@@ -71,17 +71,13 @@ export default function Home(){
     const quoteHoldingId=(isin:string)=>isin==='MIODOMANI-LT'?'miodomani':current.holdings.find(h=>h.isin===isin)?.id;
     const quoteHistory=[...current.quotes.filter(old=>!quotes.some(q=>quoteHoldingId(q.isin)===old.holdingId&&old.date===q.date))];
     for(const q of quotes){const holdingId=quoteHoldingId(q.isin);if(holdingId)quoteHistory.push({holdingId,date:q.date,price:q.price,source:q.source});}
-    const dateKey=(date:Date)=>date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
-    const today=new Date();const dailyKey=dateKey(today);const yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);const yesterdayKey=dateKey(yesterday);
+    const today=new Date();const dailyKey=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
     const dailyTotal=updatedHoldings.reduce((sum,h)=>{const marketValue=h.units*h.price;return sum+(marketValue>0?marketValue:(h.totalContributed??h.costBasis))},0);
     const dailyInvested=updatedHoldings.reduce((sum,h)=>sum+(h.totalContributed??h.costBasis),0);
+    const holdingSnapshots=Object.fromEntries(updatedHoldings.map(h=>[h.id,{value:h.units*h.price>0?h.units*h.price:(h.totalContributed??h.costBasis),invested:h.totalContributed??h.costBasis,units:h.units,price:h.price}]));
     const previousSnapshots=current.snapshots||[];
-    const existingYesterday=previousSnapshots.find(x=>x.date===yesterdayKey);
-    const historicalHoldings=updatedHoldings.map(h=>{const previousQuote=quoteHistory.filter(q=>q.holdingId===h.id&&q.date<=yesterdayKey).sort((a,b)=>b.date.localeCompare(a.date))[0];return previousQuote?{...h,price:previousQuote.price}:h;});
-    const hasYesterdayQuotes=historicalHoldings.some(h=>quoteHistory.some(q=>q.holdingId===h.id&&q.date<=yesterdayKey));
-    const yesterdaySnapshot=existingYesterday||(hasYesterdayQuotes?{id:'daily-'+yesterdayKey,date:yesterdayKey,total:historicalHoldings.reduce((sum,h)=>{const marketValue=h.units*h.price;return sum+(marketValue>0?marketValue:(h.totalContributed??h.costBasis))},0),invested:historicalHoldings.reduce((sum,h)=>sum+(h.totalContributed??h.costBasis),0),note:'Stima storica ricostruita dalle ultime quotazioni disponibili fino al giorno precedente; le posizioni senza quotazione storica mantengono il valore registrato.'}:undefined);
-    const dailySnapshot={id:'daily-'+dailyKey,date:dailyKey,total:dailyTotal,invested:dailyInvested,note:'Rilevazione giornaliera automatica dopo aggiornamento quotazioni'};
-    const snapshots=[...previousSnapshots.filter(x=>x.date!==dailyKey&&x.date!==yesterdayKey),...(yesterdaySnapshot?[yesterdaySnapshot]:[]),dailySnapshot].sort((a,b)=>a.date.localeCompare(b.date));
+    const dailySnapshot={id:'daily-'+dailyKey,date:dailyKey,total:dailyTotal,invested:dailyInvested,holdings:holdingSnapshots,note:'Rilevazione giornaliera dopo aggiornamento delle quotazioni disponibili'};
+    const snapshots=[...previousSnapshots.filter(x=>x.date!==dailyKey),dailySnapshot].sort((a,b)=>a.date.localeCompare(b.date));
     return {...current,holdings:updatedHoldings,quotes:quoteHistory,snapshots};
    });
    localStorage.setItem('pwo-last-fund-quotes-date',new Date().toISOString().slice(0,10));
@@ -95,7 +91,7 @@ export default function Home(){
    if(!silent)setMessage(label);
   }
  }
- useEffect(()=>{if(ready){const today=new Date().toISOString().slice(0,10);if(localStorage.getItem('pwo-last-fund-quotes-date')!==today)void refreshFundQuotes(true)}},[ready]);
+ useEffect(()=>{if(ready&&cloudReady){const now=new Date();const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');const snapshots=data.snapshots||[];if(!snapshots.some(s=>s.date===today))void refreshFundQuotes(true)}},[ready,cloudReady,data.snapshots]);
  const value=(h:Holding)=>{const marketValue=h.units*h.price;return marketValue>0?marketValue:(h.totalContributed??0)};
  const total=data.holdings.reduce((s,h)=>s+value(h),0);
  const invested=data.holdings.reduce((s,h)=>s+(h.totalContributed??h.costBasis),0);
@@ -151,7 +147,7 @@ export default function Home(){
  const lookThroughRows=useMemo(()=>data.holdings.filter(h=>value(h)>0&&['Fondo comune','ETF','Fondo pensione'].includes(h.type)).map(h=>({id:h.id,name:h.name,isin:h.isin,value:value(h),share:total>0?value(h)/total*100:0,benchmark:h.isin==='IE00BFMXXD54'?'S&P 500':null,known:h.isin==='IE00BFMXXD54'})),[data.holdings,total]);
  const lookThroughKnown=lookThroughRows.filter(h=>h.known);
  const lookThroughUnknown=lookThroughRows.filter(h=>!h.known);
- function saveSnapshot(){const today=new Date().toISOString().slice(0,10);setData(d=>{const snapshots=d.snapshots||[];if(snapshots.some(x=>x.date===today)){setMessage('Esiste già una rilevazione per oggi.');return d;}return {...d,snapshots:[...snapshots,{id:id(),date:today,total:d.holdings.reduce((sum,h)=>{const mv=h.units*h.price;return sum+(mv>0?mv:(h.totalContributed??0))},0),invested:d.holdings.reduce((sum,h)=>sum+(h.totalContributed??h.costBasis),0),note:'Rilevazione manuale'}]};});setMessage('Rilevazione patrimoniale salvata.');}
+ function saveSnapshot(){const now=new Date();const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');setData(d=>{const holdings=Object.fromEntries(d.holdings.map(h=>[h.id,{value:h.units*h.price>0?h.units*h.price:(h.totalContributed??h.costBasis),invested:h.totalContributed??h.costBasis,units:h.units,price:h.price}]));const total=d.holdings.reduce((sum,h)=>sum+(h.units*h.price>0?h.units*h.price:(h.totalContributed??h.costBasis)),0);const invested=d.holdings.reduce((sum,h)=>sum+(h.totalContributed??h.costBasis),0);const snapshots=d.snapshots||[];const snapshot={id:'daily-'+today,date:today,total,invested,holdings,note:'Rilevazione manuale del patrimonio'};return {...d,snapshots:[...snapshots.filter(x=>x.date!==today),snapshot].sort((a,b)=>a.date.localeCompare(b.date))};});setMessage('Rilevazione patrimoniale di oggi salvata.');}
  function addHolding(h:Holding){setData(d=>({...d,holdings:editing?d.holdings.map(x=>x.id===h.id?h:x):[...d.holdings,h]}));setModal(null);setEditing(null);setMessage('Investimento salvato.')}
  function deleteHolding(hid:string){if(!confirm('Eliminare questo investimento? I movimenti associati saranno conservati.'))return;setData(d=>({...d,holdings:d.holdings.filter(h=>h.id!==hid)}));}
  function applyTransactionToHolding(h:Holding,t:Transaction,sign:1|-1){
